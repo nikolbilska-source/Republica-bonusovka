@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bonusovka – Republica Bar</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080808;color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:560px;margin:auto;padding:20px 16px 35px}.title{text-align:center;font-size:34px;font-weight:900;letter-spacing:3px;color:#f4c84a}.sub{text-align:center;color:#aaa;letter-spacing:3px;font-size:12px;margin-bottom:20px}
+.card{background:#111;border:1px solid #5f491b;border-radius:20px;padding:18px;margin:12px 0}.label{font-size:11px;letter-spacing:2px;color:#aaa;margin-bottom:8px}
+textarea{width:100%;min-height:110px;background:#080808;color:#fff;border:1px solid #555;border-radius:12px;padding:12px;font-size:16px;resize:vertical}
+button{width:100%;min-height:48px;border:0;border-radius:13px;background:#f4c84a;color:#080808;font-weight:900;font-size:15px;margin-top:10px;padding:12px}
+button.secondary{background:#191919;color:#f4c84a;border:1px solid #5f491b}button:disabled{opacity:.45}
+.result{font-size:38px;font-weight:900;text-align:center;min-height:50px;display:flex;align-items:center;justify-content:center;color:#fff}
+.gold{color:#f4c84a}.final{text-align:center;font-size:24px;font-weight:900;line-height:1.5;padding:8px}.status{text-align:center;color:#aaa;font-size:13px;margin-top:8px}
+.rolling{animation:roll .07s linear infinite}@keyframes roll{0%{transform:translateY(-4px);opacity:.6}50%{transform:translateY(4px);opacity:1}100%{transform:translateY(-4px);opacity:.6}}
+.pop{animation:pop .4s ease-out}@keyframes pop{0%{transform:scale(.7);opacity:.2}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="title">🎯 BONUSOVKA</div>
+<div class="sub">REPUBLICA BAR</div>
+
+<div id="setup" class="card">
+<div class="label">HRÁČI – každý na nový řádek</div>
+<textarea id="names" placeholder="Petr&#10;Karel&#10;Honza&#10;Lucie"></textarea>
+<button id="start">SPUSTIT BONUSOVKU</button>
+<div class="status">Můžeš zadat až 40 hráčů.</div>
+</div>
+
+<div id="game" class="hidden">
+<div class="card">
+<div class="label">1 · VYLOSOVANÝ HRÁČ</div>
+<div id="player" class="result">—</div>
+<button id="bp">LOSOVAT HRÁČE</button>
+</div>
+
+<div class="card">
+<div class="label">2 · ČÍSLO TERČE</div>
+<div id="number" class="result gold">—</div>
+<button id="bn">LOSOVAT ČÍSLO</button>
+</div>
+
+<div class="card">
+<div class="label">3 · TYP HODU</div>
+<div id="mult" class="result gold">—</div>
+<button id="bm">LOSOVAT SINGLE / DOUBLE / TRIPLE</button>
+</div>
+
+<div class="card">
+<div class="label">VÝSLEDEK BONUSOVKY</div>
+<div id="final" class="final">Nejdřív vylosuj hráče, číslo a typ hodu.</div>
+</div>
+
+<button id="reset" class="secondary">NOVÁ BONUSOVKA</button>
+<button id="edit" class="secondary">UPRAVIT SEZNAM HRÁČŮ</button>
+<div class="status">Čísla 1–20 a 25 se v jednom kole neopakují.</div>
+</div>
+</div>
+
+<script>
+const namesEl=document.getElementById('names'),setup=document.getElementById('setup'),game=document.getElementById('game');
+const playerEl=document.getElementById('player'),numberEl=document.getElementById('number'),multEl=document.getElementById('mult'),finalEl=document.getElementById('final');
+const bp=document.getElementById('bp'),bn=document.getElementById('bn'),bm=document.getElementById('bm');
+let players=[],used=[],p=null,n=null,m=null,locked=false;
+const nums=[...Array.from({length:20},(_,i)=>i+1),25], mults=['SINGLE','DOUBLE','TRIPLE'];
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function spin(el,values,final,cb){
+ el.classList.remove('pop');el.classList.add('rolling');let i=0;
+ const timer=setInterval(()=>el.textContent=values[i++%values.length],65);
+ setTimeout(()=>{clearInterval(timer);el.textContent=final;el.classList.remove('rolling');void el.offsetWidth;el.classList.add('pop');if(cb)cb()},1150)
+}
+function update(){if(p&&n&&m)finalEl.innerHTML='👤 '+p+'<br>🎯 <b>'+m+' '+n+'</b>'}
+function setDisabled(v){bp.disabled=bn.disabled=bm.disabled=v}
+function draw(type){
+ if(locked)return;locked=true;setDisabled(true);
+ if(type==='p'){p=pick(players);spin(playerEl,players,p,update)}
+ if(type==='n'){let a=nums.filter(x=>!used.includes(x));if(!a.length){used=[];a=nums.slice()}n=pick(a);used.push(n);spin(numberEl,nums,n,update)}
+ if(type==='m'){m=pick(mults);spin(multEl,mults,m,update)}
+ setTimeout(()=>{locked=false;setDisabled(false)},1200)
+}
+document.getElementById('start').onclick=()=>{
+ const arr=namesEl.value.split(/\n|,/).map(x=>x.trim()).filter(Boolean).slice(0,40);
+ if(!arr.length){alert('Zadej alespoň jednoho hráče.');return}
+ players=[...new Set(arr)];setup.classList.add('hidden');game.classList.remove('hidden');resetRound()
+}
+function resetRound(){used=[];p=n=m=null;playerEl.textContent=numberEl.textContent=multEl.textContent='—';finalEl.textContent='Nejdřív vylosuj hráče, číslo a typ hodu.'}
+bp.onclick=()=>draw('p');bn.onclick=()=>draw('n');bm.onclick=()=>draw('m');
+document.getElementById('reset').onclick=resetRound;
+document.getElementById('edit').onclick=()=>{setup.classList.remove('hidden');game.classList.add('hidden');namesEl.value=players.join('\n')}
+</script>
+</body>
+</html>
